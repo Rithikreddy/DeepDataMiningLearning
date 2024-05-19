@@ -194,6 +194,12 @@ def loaddata(args, USE_HPC):
                 task_column ="translation"
                 text_column =  "en"
                 target_column = "fr"
+            elif args.data_name == 'opus_paracrawl':
+                print("entered paracrawl\n")
+                raw_datasets = load_dataset("opus_paracrawl", "en-so")
+                task_column ="translation"
+                text_column = "en"
+                target_column = "so"
             elif args.data_name=='billsum': #summarization
                 #raw_datasets = load_dataset("billsum", split="ca_test")
                 raw_datasets = load_dataset("billsum")
@@ -357,6 +363,13 @@ class myRouge:
         return result
 
 
+import csv
+
+def write_results_to_csv(results, csv_file):
+    with open(csv_file,mode='a',newline = '') as file:
+        writer = csv.writer(file)
+        for key,value in results.items():
+            writer.writerow([key,value])
 
 class myEvaluator:
     def __init__(self, args, useHFevaluator=False, dualevaluator=False):
@@ -409,6 +422,7 @@ class myEvaluator:
                     results = self.HFmetric.compute(use_stemmer=True)
                 #print("HF evaluator:", results["score"])
                 print("HF evaluator:", results)
+                write_results_to_csv(results,'hf.csv')
             
             if self.useHFevaluator==False or self.dualevaluator==True:
                 if self.task=="translation":
@@ -425,6 +439,7 @@ class myEvaluator:
                 elif self.task=="summarization":
                     results = self.localscorer._compute(self.preds, self.refs)
                 print("Local evaluator:", results)
+                write_results_to_csv(results,'le.csv')
         return results
     
     def add_batch(self, predictions, references):
@@ -701,7 +716,7 @@ if __name__ == "__main__":
                     help='0 means all dataset')
     parser.add_argument('--cache_path', type=str, default="D:/Cache/huggingface",
                     help='path to huggingface cache: /data/cmpe249-fa23/Huggingfacecache')
-    parser.add_argument('--model_checkpoint', type=str, default="facebook/wmt21-dense-24-wide-en-x",
+    parser.add_argument('--model_checkpoint', type=str, default="google-t5/t5-small",
                     help='Model checkpoint name from HF, t5-base, mybert, distilbert-base-uncased, t5-small, t5-base, Helsinki-NLP/opus-mt-en-zh, Helsinki-NLP/opus-mt-en-fr, t5-small, facebook/wmt21-dense-24-wide-en-x')
     parser.add_argument('--task', type=str, default="translation",
                     help='NLP tasks: openqa, translation, summarization, QA')
@@ -719,7 +734,7 @@ if __name__ == "__main__":
     )
     parser.add_argument('--pretrained', type=str, default="",
                     help='Pretrained model path')
-    parser.add_argument('--unfreezename', type=str, default="model.decoder.layers.23",
+    parser.add_argument('--unfreezename', type=str, default="decoder.block.5.layer",
                     help='Unfreezename in models')
     parser.add_argument('--outputdir', type=str, default="./output",
                     help='output path')
